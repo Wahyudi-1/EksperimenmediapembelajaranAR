@@ -5,60 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simulasi Visual 3D & AR Control Gestur</title>
     
-    <!-- Import Library Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
-    <!-- Import Library MediaPipe (Untuk AR & Computer Vision) -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
     <style>
-        /* --- Desain Utama --- */
-        :root {
-            --primary: #4F46E5;
-            --primary-hover: #4338CA;
-            --secondary: #10B981;
-            --danger: #EF4444;
-            --warning: #F59E0B;
-            --background: #F3F4F6;
-            --surface: #FFFFFF;
-            --text-main: #1F2937;
-            --text-muted: #6B7280;
-            --border: #E5E7EB;
-        }
-
+        :root { --primary: #4F46E5; --primary-hover: #4338CA; --secondary: #10B981; --danger: #EF4444; --warning: #F59E0B; --background: #F3F4F6; --surface: #FFFFFF; --text-main: #1F2937; --text-muted: #6B7280; --border: #E5E7EB; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background-color: var(--background);
-            color: var(--text-main);
-            line-height: 1.6;
-            padding: 20px;
-            display: flex; justify-content: center; align-items: center;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        .container {
-            background-color: var(--surface); width: 100%; max-width: 1250px;
-            padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-            display: flex; flex-direction: column; gap: 20px;
-            position: relative;
-        }
-
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background-color: var(--background); color: var(--text-main); line-height: 1.6; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow-x: hidden; }
+        .container { background-color: var(--surface); width: 100%; max-width: 1250px; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); display: flex; flex-direction: column; gap: 20px; position: relative; }
         header { text-align: center; margin-bottom: 10px; }
         h1 { color: var(--primary); font-size: 2.2rem; margin-bottom: 5px; }
         p.subtitle { color: var(--text-muted); font-size: 1.1rem; }
-        .ar-badge { 
-            display: inline-block; background: #10B981; color: white; 
-            padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; margin-top: 5px;
-        }
+        .ar-badge { display: inline-block; background: #10B981; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; margin-top: 5px; }
 
         .layout-grid { display: grid; grid-template-columns: 340px 1fr; gap: 25px; }
-
         .sidebar { display: flex; flex-direction: column; gap: 15px; max-height: 850px; overflow-y: auto; padding-right: 8px; }
         .sidebar::-webkit-scrollbar { width: 6px; }
         .sidebar::-webkit-scrollbar-track { background: transparent; }
@@ -95,7 +58,6 @@
         .val-badge { background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; }
         input[type="range"] { -webkit-appearance: none; width: 100%; height: 16px; border-radius: 8px; background: #CBD5E1; outline: none; cursor: pointer; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%; background: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: transform 0.1s; }
-        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); }
 
         .unfold-panel { background: #EEF2FF; padding: 15px; border-radius: 12px; border: 2px solid #C7D2FE; display: flex; flex-direction: column; gap: 10px; }
         .unfold-panel label { font-weight: 800; color: var(--primary); text-transform: uppercase; font-size: 0.9rem; }
@@ -103,6 +65,7 @@
 
         .canvas-container { background: #000000; border-radius: 16px; overflow: hidden; position: relative; min-height: 450px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; }
         #webgl-canvas { width: 100%; height: 100%; display: block; }
+        .canvas-instruction { position: absolute; bottom: 20px; background: rgba(255,255,255,0.8); padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; font-weight: 600; color: var(--text-main); pointer-events: none; }
 
         .exploration-section { background: #F8FAFC; border: 2px dashed #94A3B8; border-radius: 16px; padding: 25px; margin-top: 10px; grid-column: 1 / -1; }
         .exploration-title { text-align: center; color: #334155; font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; }
@@ -118,55 +81,27 @@
         .math-frac .num { border-bottom: 2px solid currentColor; padding: 0 4px; width: 100%; text-align: center; }
         .math-frac .den { padding: 0 4px; }
 
-        /* --- STYLES UNTUK AR CONTROL & COMPUTER VISION --- */
-        #virtual-cursor {
-            position: fixed; top: 50%; left: 50%; width: 22px; height: 22px;
-            background-color: rgba(239, 68, 68, 0.8); border: 3px solid white;
-            border-radius: 50%; pointer-events: none; z-index: 9999;
-            transform: translate(-50%, -50%); 
-            transition: width 0.1s, height 0.1s, background-color 0.1s, box-shadow 0.1s;
-            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
-        }
+        /* AR UI */
+        #virtual-cursor { position: fixed; top: 50%; left: 50%; width: 22px; height: 22px; background-color: rgba(239, 68, 68, 0.8); border: 3px solid white; border-radius: 50%; pointer-events: none; z-index: 9999; transform: translate(-50%, -50%); transition: background-color 0.1s, box-shadow 0.1s; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+        #virtual-cursor.clicking { width: 18px; height: 18px; background-color: #10B981; box-shadow: 0 0 20px rgba(16, 185, 129, 1); }
+        #virtual-cursor.dragging { background-color: #F59E0B; box-shadow: 0 0 20px rgba(245, 158, 11, 1); border-color: #000; }
 
-        #virtual-cursor.clicking {
-            width: 16px; height: 16px; background-color: #10B981;
-            box-shadow: 0 0 20px rgba(16, 185, 129, 1);
-        }
-
-        #camera-widget {
-            position: fixed; bottom: 20px; right: 20px; width: 240px; height: 180px;
-            background: #000; border-radius: 12px; overflow: hidden;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4); border: 3px solid white; z-index: 1000;
-        }
-
+        #camera-widget { position: fixed; bottom: 20px; right: 20px; width: 240px; height: 180px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 25px rgba(0,0,0,0.4); border: 3px solid white; z-index: 1000; }
         #camera-widget video { display: none; }
         #camera-widget canvas { width: 100%; height: 100%; transform: scaleX(-1); object-fit: cover; }
-        
-        #ai-status {
-            position: absolute; bottom: 0; left: 0; width: 100%;
-            background: rgba(0,0,0,0.8); color: white; font-size: 12px;
-            padding: 6px; text-align: center; box-sizing: border-box; font-weight: bold;
-        }
-
-        @media (max-width: 850px) {
-            .layout-grid { grid-template-columns: 1fr; }
-            .canvas-container { min-height: 400px; }
-            .sidebar { max-height: none; overflow: visible; }
-            #camera-widget { width: 160px; height: 120px; } /* Kecilkan di mobile */
-        }
+        #ai-status { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.8); color: white; font-size: 12px; padding: 6px; text-align: center; box-sizing: border-box; font-weight: bold; }
+        @media (max-width: 850px) { .layout-grid { grid-template-columns: 1fr; } .canvas-container { min-height: 400px; } .sidebar { max-height: none; overflow: visible; } #camera-widget { width: 160px; height: 120px; } }
     </style>
 </head>
 <body>
 
-    <!-- Kursor Virtual AR -->
     <div id="virtual-cursor"></div>
 
-    <!-- UI Utama Web Pembelajaran -->
     <div class="container">
         <header>
             <h1>Eksplorasi Bangun Ruang 3D</h1>
             <p class="subtitle">Pelajari sifatnya, bongkar jaring-jaringnya, dan pahami rumusnya!</p>
-            <div class="ar-badge">✋ Fitur AR Aktif: Arahkan tangan ke kamera, cubit untuk mengklik!</div>
+            <div class="ar-badge">✋ Fitur AR Aktif: Cubit untuk klik, TAHAN cubitan untuk MENGGESER slider/memutar 3D!</div>
         </header>
 
         <div class="layout-grid">
@@ -195,7 +130,7 @@
                 </div>
 
                 <div class="control-panel" id="dimension-panel">
-                    <div class="panel-title">Ubah Ukuran (Cubit untuk geser)</div>
+                    <div class="panel-title">Ubah Ukuran</div>
                     <div class="slider-group" id="dim1-group">
                         <label><span id="dim1-label">Sisi (s)</span> <span class="val-badge" id="val-dim1">3</span></label>
                         <input type="range" id="slider-dim1" min="1" max="6" step="0.5" value="3" oninput="updateDimensions()">
@@ -237,6 +172,7 @@
 
             <div class="canvas-container" id="canvas-wrapper">
                 <canvas id="webgl-canvas"></canvas>
+                <div class="canvas-instruction">👆 Tahan Cubitan untuk Memutar 3D</div>
             </div>
 
             <div class="exploration-section">
@@ -255,7 +191,6 @@
         </div>
     </div>
 
-    <!-- Widget PiP Kamera AR -->
     <div id="camera-widget">
         <video id="vid-ar" playsinline></video>
         <canvas id="c-ar"></canvas>
@@ -264,7 +199,7 @@
 
     <script>
         // ==========================================
-        // BAGIAN 1: LOGIKA 3D (Three.js) & MATEMATIKA
+        // 1. LOGIKA 3D (Three.js)
         // ==========================================
         const shapeProperties = {
             'kubus': { name: 'Sifat Kubus', sisi: 6, rusuk: 12, titik: 8, desc: 'Memiliki 6 sisi berbentuk persegi yang sama besar.' },
@@ -284,97 +219,60 @@
         function round2(num) { return Math.round(num * 100) / 100; }
 
         function init3D() {
-            const canvasWrapper = document.getElementById('canvas-wrapper');
+            const cw = document.getElementById('canvas-wrapper');
             const canvas = document.getElementById('webgl-canvas');
-
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x1e293b);
-
-            camera = new THREE.PerspectiveCamera(45, canvasWrapper.clientWidth / canvasWrapper.clientHeight, 0.1, 100);
-            camera.position.set(7, 7, 10); 
-
-            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-            renderer.setSize(canvasWrapper.clientWidth, canvasWrapper.clientHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-
+            scene = new THREE.Scene(); scene.background = new THREE.Color(0x1e293b);
+            camera = new THREE.PerspectiveCamera(45, cw.clientWidth / cw.clientHeight, 0.1, 100); camera.position.set(7, 7, 10); 
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true }); renderer.setSize(cw.clientWidth, cw.clientHeight); renderer.setPixelRatio(window.devicePixelRatio);
             scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            dirLight.position.set(10, 20, 10);
-            scene.add(dirLight);
+            const dl = new THREE.DirectionalLight(0xffffff, 0.8); dl.position.set(10, 20, 10); scene.add(dl);
             
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true; controls.dampingFactor = 0.05; controls.autoRotate = true; controls.autoRotateSpeed = 2.0;
 
-            const gridHelper = new THREE.GridHelper(20, 20, 0x475569, 0x334155);
-            gridHelper.position.y = -3; scene.add(gridHelper);
-
+            const gridHelper = new THREE.GridHelper(20, 20, 0x475569, 0x334155); gridHelper.position.y = -3; scene.add(gridHelper);
             updateSliderUI('kubus'); updateProperties('kubus');
-            window.addEventListener('resize', onWindowResize, false);
+            window.addEventListener('resize', () => { camera.aspect = cw.clientWidth / cw.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(cw.clientWidth, cw.clientHeight); });
             animate3D();
         }
 
-        // --- Pembentukan Hierarki 3D ---
-        function createPanel(geometry, material, edgeMaterial) {
-            const mesh = new THREE.Mesh(geometry, material);
-            if (edgeMaterial) mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), edgeMaterial));
-            return mesh;
-        }
+        function createPanel(g, m, em) { const mesh = new THREE.Mesh(g, m); if (em) mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(g), em)); return mesh; }
+        function addHinge(p, x, y, z, ax, ang, pg, px, py, pz, m, em) { const h = new THREE.Group(); h.position.set(x,y,z); h.userData={axis:ax,foldAngle:ang}; const pan = createPanel(pg,m,em); pan.position.set(px,py,pz); h.add(pan); p.add(h); foldHinges.push(h); return h; }
 
-        function addHinge(parent, x, y, z, rotAxis, foldAngle, panelGeom, panelX, panelY, panelZ, material, edgeMaterial) {
-            const hinge = new THREE.Group(); hinge.position.set(x, y, z); hinge.userData = { axis: rotAxis, foldAngle: foldAngle }; 
-            const panel = createPanel(panelGeom, material, edgeMaterial); panel.position.set(panelX, panelY, panelZ);
-            hinge.add(panel); parent.add(hinge); foldHinges.push(hinge); return hinge;
-        }
-
-        function buildNetHierarchy(type, dim1, dim2, dim3, material, edgeMaterial) {
+        function buildNetHierarchy(type, d1, d2, d3, m, em) {
             const root = new THREE.Group();
             if (type === 'kubus' || type === 'balok') {
-                const w = dim1, h = type === 'kubus' ? dim1 : dim3, d = type === 'kubus' ? dim1 : dim2;
-                root.position.y = -h/2; 
-                root.add(createPanel(new THREE.PlaneGeometry(w, d).rotateX(-Math.PI/2), material, edgeMaterial));
-                const front = addHinge(root, 0, 0, d/2, 'x', -Math.PI/2, new THREE.PlaneGeometry(w, h).rotateX(-Math.PI/2), 0, 0, h/2, material, edgeMaterial);
-                addHinge(root, 0, 0, -d/2, 'x', Math.PI/2, new THREE.PlaneGeometry(w, h).rotateX(-Math.PI/2), 0, 0, -h/2, material, edgeMaterial);
-                addHinge(root, -w/2, 0, 0, 'z', -Math.PI/2, new THREE.PlaneGeometry(h, d).rotateX(-Math.PI/2), -h/2, 0, 0, material, edgeMaterial);
-                addHinge(root, w/2, 0, 0, 'z', Math.PI/2, new THREE.PlaneGeometry(h, d).rotateX(-Math.PI/2), h/2, 0, 0, material, edgeMaterial);
-                addHinge(front, 0, 0, h, 'x', -Math.PI/2, new THREE.PlaneGeometry(w, d).rotateX(-Math.PI/2), 0, 0, d/2, material, edgeMaterial);
+                const w = d1, h = type === 'kubus' ? d1 : d3, d = type === 'kubus' ? d1 : d2; root.position.y = -h/2; 
+                root.add(createPanel(new THREE.PlaneGeometry(w, d).rotateX(-Math.PI/2), m, em));
+                const front = addHinge(root, 0, 0, d/2, 'x', -Math.PI/2, new THREE.PlaneGeometry(w, h).rotateX(-Math.PI/2), 0, 0, h/2, m, em);
+                addHinge(root, 0, 0, -d/2, 'x', Math.PI/2, new THREE.PlaneGeometry(w, h).rotateX(-Math.PI/2), 0, 0, -h/2, m, em);
+                addHinge(root, -w/2, 0, 0, 'z', -Math.PI/2, new THREE.PlaneGeometry(h, d).rotateX(-Math.PI/2), -h/2, 0, 0, m, em);
+                addHinge(root, w/2, 0, 0, 'z', Math.PI/2, new THREE.PlaneGeometry(h, d).rotateX(-Math.PI/2), h/2, 0, 0, m, em);
+                addHinge(front, 0, 0, h, 'x', -Math.PI/2, new THREE.PlaneGeometry(w, d).rotateX(-Math.PI/2), 0, 0, d/2, m, em);
             } else if (type === 'limas') {
-                const w = dim1, h = dim2; root.position.y = -h/2;
-                const slantH = Math.sqrt((w/2)*(w/2) + h*h), foldAngle = Math.atan2(h, w/2);
-                root.add(createPanel(new THREE.PlaneGeometry(w, w).rotateX(-Math.PI/2), material, edgeMaterial));
-                const makeTri = (vArray) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vArray), 3)); g.computeVertexNormals(); return g; };
-                addHinge(root, 0, 0, w/2, 'x', -foldAngle, makeTri([-w/2,0,0, w/2,0,0, 0,0,slantH]), 0, 0, 0, material, edgeMaterial);
-                addHinge(root, 0, 0, -w/2, 'x', foldAngle, makeTri([w/2,0,0, -w/2,0,0, 0,0,-slantH]), 0, 0, 0, material, edgeMaterial);
-                addHinge(root, w/2, 0, 0, 'z', foldAngle, makeTri([0,0,-w/2, 0,0,w/2, slantH,0,0]), 0, 0, 0, material, edgeMaterial);
-                addHinge(root, -w/2, 0, 0, 'z', -foldAngle, makeTri([0,0,w/2, 0,0,-w/2, -slantH,0,0]), 0, 0, 0, material, edgeMaterial);
+                const w = d1, h = d2; root.position.y = -h/2; const slantH = Math.sqrt((w/2)*(w/2) + h*h), foldAngle = Math.atan2(h, w/2);
+                root.add(createPanel(new THREE.PlaneGeometry(w, w).rotateX(-Math.PI/2), m, em));
+                const makeTri = (va) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(va), 3)); g.computeVertexNormals(); return g; };
+                addHinge(root, 0, 0, w/2, 'x', -foldAngle, makeTri([-w/2,0,0, w/2,0,0, 0,0,slantH]), 0, 0, 0, m, em);
+                addHinge(root, 0, 0, -w/2, 'x', foldAngle, makeTri([w/2,0,0, -w/2,0,0, 0,0,-slantH]), 0, 0, 0, m, em);
+                addHinge(root, w/2, 0, 0, 'z', foldAngle, makeTri([0,0,-w/2, 0,0,w/2, slantH,0,0]), 0, 0, 0, m, em);
+                addHinge(root, -w/2, 0, 0, 'z', -foldAngle, makeTri([0,0,w/2, 0,0,-w/2, -slantH,0,0]), 0, 0, 0, m, em);
             } else if (type === 'prisma') {
-                const w = dim1, h = dim2; root.position.y = -w/2; const triH = w * Math.sqrt(3) / 2;
-                root.add(createPanel(new THREE.PlaneGeometry(w, h).rotateX(-Math.PI/2), material, edgeMaterial));
-                addHinge(root, -w/2, 0, 0, 'z', -Math.PI * 2 / 3, new THREE.PlaneGeometry(w, h).rotateX(-Math.PI/2), -w/2, 0, 0, material, edgeMaterial);
-                addHinge(root, w/2, 0, 0, 'z', Math.PI * 2 / 3, new THREE.PlaneGeometry(w, h).rotateX(-Math.PI/2), w/2, 0, 0, material, edgeMaterial);
-                const t1 = new THREE.BufferGeometry(); t1.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-w/2,0,0, w/2,0,0, 0,0,triH]), 3)); t1.computeVertexNormals();
-                addHinge(root, 0, 0, h/2, 'x', -Math.PI/2, t1, 0, 0, 0, material, edgeMaterial);
-                const t2 = new THREE.BufferGeometry(); t2.setAttribute('position', new THREE.BufferAttribute(new Float32Array([w/2,0,0, -w/2,0,0, 0,0,-triH]), 3)); t2.computeVertexNormals();
-                addHinge(root, 0, 0, -h/2, 'x', Math.PI/2, t2, 0, 0, 0, material, edgeMaterial);
+                const w = d1, h = d2; root.position.y = -w/2; const triH = w * Math.sqrt(3) / 2;
+                root.add(createPanel(new THREE.PlaneGeometry(w, h).rotateX(-Math.PI/2), m, em));
+                addHinge(root, -w/2, 0, 0, 'z', -Math.PI * 2 / 3, new THREE.PlaneGeometry(w, h).rotateX(-Math.PI/2), -w/2, 0, 0, m, em);
+                addHinge(root, w/2, 0, 0, 'z', Math.PI * 2 / 3, new THREE.PlaneGeometry(w, h).rotateX(-Math.PI/2), w/2, 0, 0, m, em);
+                const t1 = new THREE.BufferGeometry(); t1.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-w/2,0,0, w/2,0,0, 0,0,triH]), 3)); t1.computeVertexNormals(); addHinge(root, 0, 0, h/2, 'x', -Math.PI/2, t1, 0, 0, 0, m, em);
+                const t2 = new THREE.BufferGeometry(); t2.setAttribute('position', new THREE.BufferAttribute(new Float32Array([w/2,0,0, -w/2,0,0, 0,0,-triH]), 3)); t2.computeVertexNormals(); addHinge(root, 0, 0, -h/2, 'x', Math.PI/2, t2, 0, 0, 0, m, em);
             }
             return root;
         }
 
-        // --- Pembaruan UI & Model ---
-        function updateProperties(type) {
-            const props = shapeProperties[type];
-            document.getElementById('prop-title').innerText = props.name;
-            document.getElementById('prop-sisi').innerText = props.sisi;
-            document.getElementById('prop-rusuk').innerText = props.rusuk;
-            document.getElementById('prop-titik').innerText = props.titik;
-            document.getElementById('prop-desc').innerText = props.desc;
-        }
-
+        function updateProperties(type) { const props = shapeProperties[type]; document.getElementById('prop-title').innerText = props.name; document.getElementById('prop-sisi').innerText = props.sisi; document.getElementById('prop-rusuk').innerText = props.rusuk; document.getElementById('prop-titik').innerText = props.titik; document.getElementById('prop-desc').innerText = props.desc; }
         function updateSliderUI(type) {
             const g1 = document.getElementById('dim1-group'), g2 = document.getElementById('dim2-group'), g3 = document.getElementById('dim3-group');
             const l1 = document.getElementById('dim1-label'), l2 = document.getElementById('dim2-label'), l3 = document.getElementById('dim3-label');
-            const s1 = document.getElementById('slider-dim1'), s2 = document.getElementById('slider-dim2'), s3 = document.getElementById('slider-dim3');
             g1.style.display = 'flex'; g2.style.display = 'none'; g3.style.display = 'none';
-
             if (type === 'kubus') { l1.innerText = "Sisi (s)"; } 
             else if (type === 'balok') { l1.innerText = "Panjang (p)"; l2.innerText = "Lebar (l)"; l3.innerText = "Tinggi (t)"; g2.style.display = 'flex'; g3.style.display = 'flex'; } 
             else if (type === 'tabung' || type === 'kerucut') { l1.innerText = "Jari-jari (r)"; l2.innerText = "Tinggi (t)"; g2.style.display = 'flex'; } 
@@ -384,47 +282,22 @@
             updateDimensions(); 
         }
 
-        function updateDimensions() {
-            document.getElementById('val-dim1').innerText = document.getElementById('slider-dim1').value;
-            document.getElementById('val-dim2').innerText = document.getElementById('slider-dim2').value;
-            document.getElementById('val-dim3').innerText = document.getElementById('slider-dim3').value;
-            createShapeMesh(currentShapeType);
-        }
-
+        function updateDimensions() { document.getElementById('val-dim1').innerText = document.getElementById('slider-dim1').value; document.getElementById('val-dim2').innerText = document.getElementById('slider-dim2').value; document.getElementById('val-dim3').innerText = document.getElementById('slider-dim3').value; createShapeMesh(currentShapeType); }
         function createShapeMesh(type) {
             if (currentMesh) { scene.remove(currentMesh); } foldHinges = [];
-            const isWireframe = document.getElementById('wireframe-toggle').checked;
-            const mat = isWireframe ? new THREE.MeshBasicMaterial({ color: 0x4F46E5, wireframe: true }) 
-                                    : new THREE.MeshStandardMaterial({ color: 0x4F46E5, roughness: 0.3, metalness: 0.1, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 1 });
-            const edgeMat = isWireframe ? null : new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+            const isWf = document.getElementById('wireframe-toggle').checked;
+            const mat = isWf ? new THREE.MeshBasicMaterial({ color: 0x4F46E5, wireframe: true }) : new THREE.MeshStandardMaterial({ color: 0x4F46E5, roughness: 0.3, metalness: 0.1, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 1 });
+            const edgeMat = isWf ? null : new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
             const d1 = parseFloat(document.getElementById('slider-dim1').value), d2 = parseFloat(document.getElementById('slider-dim2').value), d3 = parseFloat(document.getElementById('slider-dim3').value);
             const supportsNet = ['kubus', 'balok', 'limas', 'prisma'].includes(type);
-            const unfoldSlider = document.getElementById('unfold-slider');
-            
-            if (supportsNet) {
-                unfoldSlider.disabled = false; unfoldSlider.style.opacity = "1"; document.getElementById('unfold-warning').style.display = 'none';
-                currentMesh = buildNetHierarchy(type, d1, d2, d3, mat, edgeMat); scene.add(currentMesh); updateFold(); 
-            } else {
-                unfoldSlider.disabled = true; unfoldSlider.value = 0; unfoldSlider.style.opacity = "0.5"; document.getElementById('unfold-warning').style.display = 'block';
-                let g;
-                if(type === 'tabung') g = new THREE.CylinderGeometry(d1, d1, d2, 32); else if(type === 'kerucut') g = new THREE.ConeGeometry(d1, d2, 32); else g = new THREE.SphereGeometry(d1, 32, 32);
-                currentMesh = new THREE.Mesh(g, mat); if (edgeMat) currentMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(g, 15), edgeMat));
-                scene.add(currentMesh);
-            }
+            if (supportsNet) { document.getElementById('unfold-slider').disabled = false; document.getElementById('unfold-warning').style.display = 'none'; currentMesh = buildNetHierarchy(type, d1, d2, d3, mat, edgeMat); scene.add(currentMesh); updateFold(); } 
+            else { document.getElementById('unfold-slider').disabled = true; document.getElementById('unfold-warning').style.display = 'block'; let g; if(type === 'tabung') g = new THREE.CylinderGeometry(d1, d1, d2, 32); else if(type === 'kerucut') g = new THREE.ConeGeometry(d1, d2, 32); else g = new THREE.SphereGeometry(d1, 32, 32); currentMesh = new THREE.Mesh(g, mat); if (edgeMat) currentMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(g, 15), edgeMat)); scene.add(currentMesh); }
             updateCalculations(type, d1, d2, d3);
         }
 
-        function updateFold() {
-            if (!foldHinges.length) return;
-            const val = parseFloat(document.getElementById('unfold-slider').value);
-            foldHinges.forEach(h => { h.rotation.set(0, 0, 0); h.rotation[h.userData.axis] = h.userData.foldAngle * (1 - val); });
-        }
-
-        function updateCalculations(type, d1, d2, d3) {
-            const mathLuas = document.getElementById('math-luas'), mathVolume = document.getElementById('math-volume');
-            document.getElementById('explore-title').innerText = `Eksplorasi Perhitungan: ${type.toUpperCase()}`;
-            let hL = '', hV = ''; const PI = Math.PI;
-
+        function updateFold() { if (!foldHinges.length) return; const val = parseFloat(document.getElementById('unfold-slider').value); foldHinges.forEach(h => { h.rotation.set(0, 0, 0); h.rotation[h.userData.axis] = h.userData.foldAngle * (1 - val); }); }
+        function updateCalculations(type, d1, d2, d3) { /* Logika Math sama seperti sebelumnya */
+            const mathLuas = document.getElementById('math-luas'), mathVolume = document.getElementById('math-volume'); document.getElementById('explore-title').innerText = `Eksplorasi Perhitungan: ${type.toUpperCase()}`; let hL = '', hV = ''; const PI = Math.PI;
             if (type === 'kubus') { hL = `L = 6 × s² = ${round2(6*d1*d1)}`; hV = `V = s³ = ${round2(d1*d1*d1)}`; } 
             else if (type === 'balok') { hL = `L = 2(pl + pt + lt) = ${round2(2*(d1*d2 + d1*d3 + d2*d3))}`; hV = `V = p × l × t = ${round2(d1*d2*d3)}`; } 
             else if (type === 'tabung') { hL = `L = 2πr(r+t) ≈ ${round2(2*PI*d1*(d1+d2))}`; hV = `V = πr²t ≈ ${round2(PI*d1*d1*d2)}`; } 
@@ -432,19 +305,17 @@
             else if (type === 'bola') { hL = `L = 4πr² ≈ ${round2(4*PI*d1*d1)}`; hV = `V = 4/3 πr³ ≈ ${round2((4/3)*PI*d1*d1*d1)}`; } 
             else if (type === 'limas') { const ts=Math.sqrt((d1/2)*(d1/2)+d2*d2); hL = `L = s² + 4(1/2 s×ts) ≈ ${round2(d1*d1 + 4*(0.5*d1*ts))}`; hV = `V = 1/3 s²t ≈ ${round2((1/3)*d1*d1*d2)}`; } 
             else if (type === 'prisma') { const ta=d1*Math.sqrt(3)/2, La=0.5*d1*ta; hL = `L = 2(La) + 3(s×t) ≈ ${round2((2*La) + (3*d1*d2))}`; hV = `V = La × t ≈ ${round2(La*d2)}`; }
-
             mathLuas.innerHTML = `<div class="math-result">${hL}</div>`; mathVolume.innerHTML = `<div class="math-result">${hV}</div>`;
         }
 
         function updateMaterial() { createShapeMesh(currentShapeType); }
         function changeShape(type) { document.querySelectorAll('.btn-shape').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); currentShapeType = type; document.getElementById('unfold-slider').value = 0; updateProperties(type); updateSliderUI(type); }
         function toggleAutoRotate() { controls.autoRotate = document.getElementById('autorotate-toggle').checked; }
-        function onWindowResize() { const cw = document.getElementById('canvas-wrapper'); camera.aspect = cw.clientWidth / cw.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(cw.clientWidth, cw.clientHeight); }
         function animate3D() { requestAnimationFrame(animate3D); controls.update(); renderer.render(scene, camera); }
 
 
         // ==========================================
-        // BAGIAN 2: LOGIKA AR & COMPUTER VISION
+        // 2. LOGIKA AR DRAG & DROP
         // ==========================================
         function initAR() {
             const vidAR = document.getElementById('vid-ar');
@@ -453,75 +324,114 @@
             const cursor = document.getElementById('virtual-cursor');
             const statusEl = document.getElementById('ai-status');
 
-            let isClicking = false;
+            let isPinching = false;
             let lastClickTime = 0;
-            // Posisi awal kursor di tengah
             let smoothedX = window.innerWidth / 2;
             let smoothedY = window.innerHeight / 2;
+            
+            // Variabel untuk menahan status elemen yang sedang digeser (Drag)
+            let activeElement = null;
+            let interactionType = null; // 'SLIDER' atau 'CANVAS'
 
-            function getDistance(p1, p2) {
-                return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+            function getDistance(p1, p2) { return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2)); }
+
+            // Fungsi simulasi event Mouse untuk Kanvas 3D
+            function dispatchMouseEvent(target, type, x, y) {
+                const event = new MouseEvent(type, { view: window, bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0 });
+                target.dispatchEvent(event);
             }
 
             function runAR(res) {
-                // Gambar video kamera ke widget PiP
-                cAR.width = 240;
-                cAR.height = 180;
+                cAR.width = 240; cAR.height = 180;
                 ctxAR.drawImage(res.image, 0, 0, cAR.width, cAR.height);
 
                 if (res.multiHandLandmarks && res.multiHandLandmarks.length > 0) {
-                    statusEl.innerText = "Tangan Terbaca | Cubit = Klik";
-                    statusEl.style.background = "rgba(16, 185, 129, 0.9)"; // Hijau
-
+                    statusEl.innerText = "Tangan Terbaca | Cubit = Klik/Tahan";
+                    statusEl.style.background = "rgba(16, 185, 129, 0.9)";
                     const lm = res.multiHandLandmarks[0];
-                    drawConnectors(ctxAR, lm, HAND_CONNECTIONS, {color: '#10B981', lineWidth: 1});
-                    drawLandmarks(ctxAR, lm, {color: '#FFFFFF', lineWidth: 1, radius: 2});
+                    drawConnectors(ctxAR, lm, HAND_CONNECTIONS, {color: '#10B981', lineWidth: 1}); drawLandmarks(ctxAR, lm, {color: '#FFFFFF', lineWidth: 1, radius: 2});
 
-                    const indexTip = lm[8];
-                    const thumbTip = lm[4];
+                    const indexTip = lm[8], thumbTip = lm[4];
+                    const targetX = (1 - indexTip.x) * window.innerWidth, targetY = indexTip.y * window.innerHeight;
+                    
+                    smoothedX += (targetX - smoothedX) * 0.35; smoothedY += (targetY - smoothedY) * 0.35;
+                    cursor.style.left = smoothedX + 'px'; cursor.style.top = smoothedY + 'px';
 
-                    // Mapping kamera ke layar (X di-flip)
-                    const targetX = (1 - indexTip.x) * window.innerWidth;
-                    const targetY = indexTip.y * window.innerHeight;
-
-                    // Stabilisasi kursor (EMA Filter)
-                    smoothedX += (targetX - smoothedX) * 0.3;
-                    smoothedY += (targetY - smoothedY) * 0.3;
-
-                    cursor.style.left = smoothedX + 'px';
-                    cursor.style.top = smoothedY + 'px';
-
-                    // Deteksi Gestur Klik (Cubit)
                     const distance = getDistance(indexTip, thumbTip);
                     const currentTime = new Date().getTime();
 
-                    if (distance < 0.05) {
-                        if (!isClicking && (currentTime - lastClickTime > 400)) { // Debounce 400ms
-                            isClicking = true;
-                            lastClickTime = currentTime;
-                            cursor.classList.add('clicking');
-
-                            // CARI ELEMEN DI BAWAH KURSOR LALU KLIK!
-                            const elementBelowCursor = document.elementFromPoint(smoothedX, smoothedY);
-                            if (elementBelowCursor) {
-                                elementBelowCursor.click();
-                                
-                                // Jika elemen yang diklik adalah input range (slider)
-                                if (elementBelowCursor.tagName === 'INPUT' && elementBelowCursor.type === 'range') {
-                                    // Trigger event agar fungsi JS berjalan
-                                    elementBelowCursor.dispatchEvent(new Event('input'));
-                                    elementBelowCursor.dispatchEvent(new Event('change'));
+                    // LOGIKA TAHAN & GESER (HOLD & DRAG)
+                    if (distance < 0.05) { 
+                        // Sedang Mencubit (MouseDown / MouseMove)
+                        if (!isPinching) {
+                            // Detik pertama mencubit (Klik Awal / MouseDown)
+                            isPinching = true;
+                            const el = document.elementFromPoint(smoothedX, smoothedY);
+                            
+                            if (el) {
+                                if (el.tagName === 'INPUT' && el.type === 'range') {
+                                    // 1. Mengunci Slider
+                                    activeElement = el;
+                                    interactionType = 'SLIDER';
+                                    cursor.classList.add('dragging');
+                                } else if (el.tagName === 'CANVAS' && el.id === 'webgl-canvas') {
+                                    // 2. Mengunci Kanvas 3D untuk diputar
+                                    activeElement = el;
+                                    interactionType = 'CANVAS';
+                                    cursor.classList.add('dragging');
+                                    
+                                    // Matikan putaran otomatis agar tidak bertabrakan dengan gerakan tangan
+                                    controls.autoRotate = false;
+                                    document.getElementById('autorotate-toggle').checked = false;
+                                    dispatchMouseEvent(activeElement, 'mousedown', smoothedX, smoothedY);
+                                } else if (currentTime - lastClickTime > 400) {
+                                    // 3. Tombol biasa (Klik tunggal)
+                                    el.click();
+                                    lastClickTime = currentTime;
+                                    cursor.classList.add('clicking');
                                 }
+                            }
+                        } else {
+                            // Jari MASIH mencubit dan sedang bergerak (Sedang Menyeret / MouseMove)
+                            if (interactionType === 'SLIDER' && activeElement) {
+                                // Hitung persentase posisi X kursor terhadap lebar slider
+                                const rect = activeElement.getBoundingClientRect();
+                                let percent = (smoothedX - rect.left) / rect.width;
+                                percent = Math.max(0, Math.min(1, percent)); // Batasi antara 0% dan 100%
                                 
-                                // Berikan highlight visual pada elemen yang terkena klik AR
-                                const originalShadow = elementBelowCursor.style.boxShadow;
-                                elementBelowCursor.style.boxShadow = "0 0 15px #10B981";
-                                setTimeout(() => { elementBelowCursor.style.boxShadow = originalShadow; }, 200);
+                                const min = parseFloat(activeElement.min) || 0;
+                                const max = parseFloat(activeElement.max) || 100;
+                                const step = parseFloat(activeElement.step) || 1;
+                                
+                                // Terjemahkan persentase menjadi nilai asli slider
+                                let rawValue = min + percent * (max - min);
+                                let steppedValue = Math.round(rawValue / step) * step; // Sesuaikan dengan 'step'
+                                
+                                // Perbarui jika nilainya berubah
+                                if (activeElement.value != steppedValue) {
+                                    activeElement.value = steppedValue;
+                                    activeElement.dispatchEvent(new Event('input')); // Trigger fungsi updateDimensions()
+                                }
+                            } else if (interactionType === 'CANVAS' && activeElement) {
+                                // Kirim perintah mousemove ke kanvas agar objek 3D berputar
+                                dispatchMouseEvent(activeElement, 'mousemove', smoothedX, smoothedY);
                             }
                         }
                     } else {
-                        isClicking = false;
-                        cursor.classList.remove('clicking');
+                        // Cubitan Dilepas (MouseUp)
+                        if (isPinching) {
+                            isPinching = false;
+                            
+                            if (interactionType === 'SLIDER' && activeElement) {
+                                activeElement.dispatchEvent(new Event('change')); // Selesaikan drag slider
+                            } else if (interactionType === 'CANVAS' && activeElement) {
+                                dispatchMouseEvent(activeElement, 'mouseup', smoothedX, smoothedY); // Selesaikan rotasi kanvas
+                            }
+                            
+                            activeElement = null;
+                            interactionType = null;
+                        }
+                        cursor.classList.remove('clicking', 'dragging');
                     }
                 } else {
                     statusEl.innerText = "Kamera Aktif: Arahkan Tangan";
@@ -529,32 +439,15 @@
                 }
             }
 
-            const handsAR = new Hands({
-                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-            });
-            
-            handsAR.setOptions({ 
-                maxNumHands: 1, 
-                modelComplexity: 1, 
-                minDetectionConfidence: 0.7, 
-                minTrackingConfidence: 0.7 
-            });
-            
+            const handsAR = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+            handsAR.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
             handsAR.onResults(runAR);
 
-            const camAR = new Camera(vidAR, {
-                onFrame: async () => { await handsAR.send({image: vidAR}); },
-                width: 640, height: 480
-            });
-            
+            const camAR = new Camera(vidAR, { onFrame: async () => { await handsAR.send({image: vidAR}); }, width: 640, height: 480 });
             camAR.start();
         }
 
-        // --- Inisialisasi Keduanya Saat Halaman Dimuat ---
-        window.onload = function() {
-            init3D();  // Nyalakan Render Bangun Ruang
-            initAR();  // Nyalakan Kamera AI & Kursor
-        };
+        window.onload = function() { init3D(); initAR(); };
     </script>
 </body>
 </html>
