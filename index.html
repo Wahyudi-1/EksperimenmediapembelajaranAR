@@ -423,13 +423,20 @@
                                     } else if (el.tagName === 'CANVAS' && el.id === 'webgl-canvas') {
                                         activeElement = el; interactionType = 'CANVAS'; cursor.classList.add('dragging');
                                         controls.enabled = false; controls.autoRotate = false; document.getElementById('autorotate-toggle').checked = false;
-                                    } else if (el.closest('.sidebar')) {
-                                        activeElement = el.closest('.sidebar'); interactionType = 'SCROLL_SIDEBAR'; cursor.classList.add('dragging');
-                                    } else if (el.tagName === 'BUTTON' || el.classList.contains('btn-shape') || el.tagName === 'LABEL') {
+                                    } else if (el.tagName === 'BUTTON' || el.classList.contains('btn-shape') || el.tagName === 'LABEL' || el.closest('button') || el.closest('label')) {
+                                        // PERBAIKAN: Cek klik tombol LEBIH DULU sebelum mengecek area sidebar
                                         if (currentTime - lastClickTime > 400) {
-                                            el.click(); lastClickTime = currentTime; cursor.classList.add('clicking');
+                                            // Memastikan kita mengklik elemen tombol aslinya (berjaga-jaga jika yang dicubit adalah teks/ikon di dalamnya)
+                                            const clickableEl = el.closest('button') || el.closest('label') || el;
+                                            clickableEl.click(); 
+                                            lastClickTime = currentTime; 
+                                            cursor.classList.add('clicking');
                                         }
+                                    } else if (el.closest('.sidebar')) {
+                                        // Jika dicubit bukan pada tombol (area kosong sidebar) -> Scroll Sidebar
+                                        activeElement = el.closest('.sidebar'); interactionType = 'SCROLL_SIDEBAR'; cursor.classList.add('dragging');
                                     } else {
+                                        // Area kosong di luar sidebar -> Scroll Halaman
                                         interactionType = 'SCROLL_WINDOW'; cursor.classList.add('dragging');
                                     }
                                 }
