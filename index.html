@@ -90,6 +90,8 @@
         #camera-widget video { display: none; }
         #camera-widget canvas { width: 100%; height: 100%; transform: scaleX(-1); object-fit: cover; }
         #ai-status { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.8); color: white; font-size: 12px; padding: 6px; text-align: center; box-sizing: border-box; font-weight: bold; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .loading-blink { animation: blink 1.5s infinite; color: #FCD34D !important; }
         @media (max-width: 850px) { .layout-grid { grid-template-columns: 1fr; } .canvas-container { min-height: 400px; } .sidebar { max-height: none; overflow: visible; } #camera-widget { width: 160px; height: 120px; } }
     </style>
 </head>
@@ -101,7 +103,7 @@
         <header>
             <h1>Eksplorasi Bangun Ruang 3D</h1>
             <p class="subtitle">Pelajari sifatnya, bongkar jaring-jaringnya, dan pahami rumusnya!</p>
-            <div class="ar-badge">✋ Fitur AR Aktif: Cubit untuk klik, TAHAN cubitan untuk MENGGESER slider/memutar 3D!</div>
+            <div class="ar-badge">✋ 1 Tangan: Cubit & Geser (Putar/Slider) | 👐 2 Tangan: Rentangkan untuk Zoom 3D!</div>
         </header>
 
         <div class="layout-grid">
@@ -315,7 +317,7 @@
 
 
         // ==========================================
-        // 2. LOGIKA AR DRAG & DROP
+        // 2. LOGIKA AR DRAG, DROP, SCROLL & ZOOM
         // ==========================================
         function initAR() {
             const vidAR = document.getElementById('vid-ar');
@@ -324,126 +326,161 @@
             const cursor = document.getElementById('virtual-cursor');
             const statusEl = document.getElementById('ai-status');
 
+            statusEl.classList.add('loading-blink');
+            statusEl.innerText = "⏳ Mengunduh AI (Mohon Tunggu)...";
+
             let isPinching = false;
             let lastClickTime = 0;
             let smoothedX = window.innerWidth / 2;
             let smoothedY = window.innerHeight / 2;
             
-            // Variabel untuk menahan status elemen yang sedang digeser (Drag)
             let activeElement = null;
-            let interactionType = null; // 'SLIDER' atau 'CANVAS'
+            let interactionType = null;
+            let lastDragX = 0;
+            let lastDragY = 0;
+            
+            // Variabel untuk menyimpan jarak antar tangan (untuk Zoom)
+            let lastZoomDist = null;
 
             function getDistance(p1, p2) { return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2)); }
 
-            // Fungsi simulasi event Mouse untuk Kanvas 3D
-            function dispatchMouseEvent(target, type, x, y) {
-                const event = new MouseEvent(type, { view: window, bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0 });
-                target.dispatchEvent(event);
-            }
-
             function runAR(res) {
+                if (statusEl.classList.contains('loading-blink')) {
+                    statusEl.classList.remove('loading-blink');
+                }
+
                 cAR.width = 240; cAR.height = 180;
                 ctxAR.drawImage(res.image, 0, 0, cAR.width, cAR.height);
 
                 if (res.multiHandLandmarks && res.multiHandLandmarks.length > 0) {
-                    statusEl.innerText = "Tangan Terbaca | Cubit = Klik/Tahan";
-                    statusEl.style.background = "rgba(16, 185, 129, 0.9)";
-                    const lm = res.multiHandLandmarks[0];
-                    drawConnectors(ctxAR, lm, HAND_CONNECTIONS, {color: '#10B981', lineWidth: 1}); drawLandmarks(ctxAR, lm, {color: '#FFFFFF', lineWidth: 1, radius: 2});
-
-                    const indexTip = lm[8], thumbTip = lm[4];
-                    const targetX = (1 - indexTip.x) * window.innerWidth, targetY = indexTip.y * window.innerHeight;
                     
-                    smoothedX += (targetX - smoothedX) * 0.35; smoothedY += (targetY - smoothedY) * 0.35;
-                    cursor.style.left = smoothedX + 'px'; cursor.style.top = smoothedY + 'px';
+                    // Gambar kerangka untuk SEMUA tangan yang terdeteksi
+                    for (const lm of res.multiHandLandmarks) {
+                        drawConnectors(ctxAR, lm, HAND_CONNECTIONS, {color: '#10B981', lineWidth: 1}); 
+                        drawLandmarks(ctxAR, lm, {color: '#FFFFFF', lineWidth: 1, radius: 2});
+                    }
 
-                    const distance = getDistance(indexTip, thumbTip);
-                    const currentTime = new Date().getTime();
-
-                    // LOGIKA TAHAN & GESER (HOLD & DRAG)
-                    if (distance < 0.05) { 
-                        // Sedang Mencubit (MouseDown / MouseMove)
-                        if (!isPinching) {
-                            // Detik pertama mencubit (Klik Awal / MouseDown)
-                            isPinching = true;
-                            const el = document.elementFromPoint(smoothedX, smoothedY);
+                    // --- LOGIKA 2 TANGAN: ZOOM IN/OUT KANVAS 3D ---
+                    if (res.multiHandLandmarks.length === 2) {
+                        statusEl.innerText = "👐 Mode Zoom: Jauhkan/Dekatkan Jari";
+                        statusEl.style.background = "rgba(59, 130, 246, 0.9)"; // Warna Biru untuk Zoom
+                        cursor.style.display = 'none'; // Sembunyikan kursor merah saat zoom
+                        isPinching = false; // Batalkan drag 1 tangan
+                        
+                        // Ambil ujung jari telunjuk dari kedua tangan
+                        const tip1 = res.multiHandLandmarks[0][8];
+                        const tip2 = res.multiHandLandmarks[1][8];
+                        
+                        // Konversi ke koordinat layar
+                        const tX1 = (1 - tip1.x) * window.innerWidth;
+                        const tY1 = tip1.y * window.innerHeight;
+                        const tX2 = (1 - tip2.x) * window.innerWidth;
+                        const tY2 = tip2.y * window.innerHeight;
+                        
+                        // Hitung jarak (distance) antara kedua jari telunjuk
+                        const currentZoomDist = Math.hypot(tX1 - tX2, tY1 - tY2);
+                        
+                        if (lastZoomDist !== null) {
+                            const delta = currentZoomDist - lastZoomDist;
+                            // Jika delta positif (jari menjauh) -> Zoom In. Jika negatif -> Zoom Out.
+                            // Kita mengubah jarak kamera ke objek (radius/length) dari Three.js
+                            const currentCamDist = camera.position.length();
+                            const newCamDist = Math.max(3, Math.min(25, currentCamDist - delta * 0.04));
                             
-                            if (el) {
-                                if (el.tagName === 'INPUT' && el.type === 'range') {
-                                    // 1. Mengunci Slider
-                                    activeElement = el;
-                                    interactionType = 'SLIDER';
-                                    cursor.classList.add('dragging');
-                                } else if (el.tagName === 'CANVAS' && el.id === 'webgl-canvas') {
-                                    // 2. Mengunci Kanvas 3D untuk diputar
-                                    activeElement = el;
-                                    interactionType = 'CANVAS';
-                                    cursor.classList.add('dragging');
-                                    
-                                    // Matikan putaran otomatis agar tidak bertabrakan dengan gerakan tangan
-                                    controls.autoRotate = false;
-                                    document.getElementById('autorotate-toggle').checked = false;
-                                    dispatchMouseEvent(activeElement, 'mousedown', smoothedX, smoothedY);
-                                } else if (currentTime - lastClickTime > 400) {
-                                    // 3. Tombol biasa (Klik tunggal)
-                                    el.click();
-                                    lastClickTime = currentTime;
-                                    cursor.classList.add('clicking');
+                            camera.position.setLength(newCamDist);
+                            controls.update(); // Perbarui OrbitControls
+                        }
+                        lastZoomDist = currentZoomDist;
+                    } 
+                    // --- LOGIKA 1 TANGAN: KLIK, DRAG & SCROLL ---
+                    else if (res.multiHandLandmarks.length === 1) {
+                        lastZoomDist = null; // Reset status zoom
+                        cursor.style.display = 'block'; // Tampilkan kembali kursor
+                        
+                        statusEl.innerText = "🟢 Tangan Terbaca | Cubit & Geser";
+                        statusEl.style.background = "rgba(16, 185, 129, 0.9)";
+                        const lm = res.multiHandLandmarks[0];
+                        
+                        const indexTip = lm[8], thumbTip = lm[4];
+                        const targetX = (1 - indexTip.x) * window.innerWidth, targetY = indexTip.y * window.innerHeight;
+                        
+                        smoothedX += (targetX - smoothedX) * 0.35; smoothedY += (targetY - smoothedY) * 0.35;
+                        cursor.style.left = smoothedX + 'px'; cursor.style.top = smoothedY + 'px';
+
+                        const distance = getDistance(indexTip, thumbTip);
+                        const currentTime = new Date().getTime();
+
+                        if (distance < 0.05) { 
+                            if (!isPinching) {
+                                isPinching = true;
+                                lastDragX = smoothedX;
+                                lastDragY = smoothedY;
+                                const el = document.elementFromPoint(smoothedX, smoothedY);
+                                
+                                if (el) {
+                                    if (el.tagName === 'INPUT' && el.type === 'range') {
+                                        activeElement = el; interactionType = 'SLIDER'; cursor.classList.add('dragging');
+                                    } else if (el.tagName === 'CANVAS' && el.id === 'webgl-canvas') {
+                                        activeElement = el; interactionType = 'CANVAS'; cursor.classList.add('dragging');
+                                        controls.enabled = false; controls.autoRotate = false; document.getElementById('autorotate-toggle').checked = false;
+                                    } else if (el.closest('.sidebar')) {
+                                        activeElement = el.closest('.sidebar'); interactionType = 'SCROLL_SIDEBAR'; cursor.classList.add('dragging');
+                                    } else if (el.tagName === 'BUTTON' || el.classList.contains('btn-shape') || el.tagName === 'LABEL') {
+                                        if (currentTime - lastClickTime > 400) {
+                                            el.click(); lastClickTime = currentTime; cursor.classList.add('clicking');
+                                        }
+                                    } else {
+                                        interactionType = 'SCROLL_WINDOW'; cursor.classList.add('dragging');
+                                    }
                                 }
+                            } else {
+                                let deltaX = smoothedX - lastDragX;
+                                let deltaY = smoothedY - lastDragY;
+
+                                if (interactionType === 'SLIDER' && activeElement) {
+                                    const rect = activeElement.getBoundingClientRect();
+                                    let percent = (smoothedX - rect.left) / rect.width;
+                                    percent = Math.max(0, Math.min(1, percent)); 
+                                    const min = parseFloat(activeElement.min) || 0; const max = parseFloat(activeElement.max) || 100; const step = parseFloat(activeElement.step) || 1;
+                                    let steppedValue = Math.round((min + percent * (max - min)) / step) * step;
+                                    if (activeElement.value != steppedValue) { activeElement.value = steppedValue; activeElement.dispatchEvent(new Event('input')); }
+                                } else if (interactionType === 'CANVAS') {
+                                    if (currentMesh) {
+                                        currentMesh.rotation.y += deltaX * 0.015;
+                                        currentMesh.rotation.x += deltaY * 0.015;
+                                    }
+                                } else if (interactionType === 'SCROLL_SIDEBAR' && activeElement) {
+                                    activeElement.scrollTop -= deltaY * 2.0; 
+                                } else if (interactionType === 'SCROLL_WINDOW') {
+                                    window.scrollBy(0, -deltaY * 2.0);
+                                }
+
+                                lastDragX = smoothedX;
+                                lastDragY = smoothedY;
                             }
                         } else {
-                            // Jari MASIH mencubit dan sedang bergerak (Sedang Menyeret / MouseMove)
-                            if (interactionType === 'SLIDER' && activeElement) {
-                                // Hitung persentase posisi X kursor terhadap lebar slider
-                                const rect = activeElement.getBoundingClientRect();
-                                let percent = (smoothedX - rect.left) / rect.width;
-                                percent = Math.max(0, Math.min(1, percent)); // Batasi antara 0% dan 100%
-                                
-                                const min = parseFloat(activeElement.min) || 0;
-                                const max = parseFloat(activeElement.max) || 100;
-                                const step = parseFloat(activeElement.step) || 1;
-                                
-                                // Terjemahkan persentase menjadi nilai asli slider
-                                let rawValue = min + percent * (max - min);
-                                let steppedValue = Math.round(rawValue / step) * step; // Sesuaikan dengan 'step'
-                                
-                                // Perbarui jika nilainya berubah
-                                if (activeElement.value != steppedValue) {
-                                    activeElement.value = steppedValue;
-                                    activeElement.dispatchEvent(new Event('input')); // Trigger fungsi updateDimensions()
-                                }
-                            } else if (interactionType === 'CANVAS' && activeElement) {
-                                // Kirim perintah mousemove ke kanvas agar objek 3D berputar
-                                dispatchMouseEvent(activeElement, 'mousemove', smoothedX, smoothedY);
+                            if (isPinching) {
+                                isPinching = false;
+                                if (interactionType === 'SLIDER' && activeElement) { activeElement.dispatchEvent(new Event('change')); }
+                                if (interactionType === 'CANVAS') { controls.enabled = true; } 
+                                activeElement = null; interactionType = null;
                             }
+                            cursor.classList.remove('clicking', 'dragging');
                         }
-                    } else {
-                        // Cubitan Dilepas (MouseUp)
-                        if (isPinching) {
-                            isPinching = false;
-                            
-                            if (interactionType === 'SLIDER' && activeElement) {
-                                activeElement.dispatchEvent(new Event('change')); // Selesaikan drag slider
-                            } else if (interactionType === 'CANVAS' && activeElement) {
-                                dispatchMouseEvent(activeElement, 'mouseup', smoothedX, smoothedY); // Selesaikan rotasi kanvas
-                            }
-                            
-                            activeElement = null;
-                            interactionType = null;
-                        }
-                        cursor.classList.remove('clicking', 'dragging');
                     }
                 } else {
                     statusEl.innerText = "Kamera Aktif: Arahkan Tangan";
                     statusEl.style.background = "rgba(0,0,0,0.8)";
+                    cursor.style.display = 'none'; // Sembunyikan kursor jika tidak ada tangan
                 }
             }
 
             const handsAR = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
-            handsAR.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
+            // UBAH maxNumHands MENJADI 2 UNTUK MEMUNGKINKAN GESTUR ZOOM 2 TANGAN
+            handsAR.setOptions({ maxNumHands: 2, modelComplexity: 0, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
             handsAR.onResults(runAR);
 
-            const camAR = new Camera(vidAR, { onFrame: async () => { await handsAR.send({image: vidAR}); }, width: 640, height: 480 });
+            const camAR = new Camera(vidAR, { onFrame: async () => { await handsAR.send({image: vidAR}); }, width: 480, height: 360 });
             camAR.start();
         }
 
@@ -451,5 +488,3 @@
     </script>
 </body>
 </html>
-
-
